@@ -386,17 +386,66 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in) {
     st7789_ST7789_hard_reset(self_in);
     st7789_ST7789_soft_reset(self_in);
     write_cmd(self, ST7789_SLPOUT, NULL, 0);
+    mp_hal_delay_ms(120);
+
+    write_cmd(self, ST7789_NORON, NULL, 0);
+
+//    const uint8_t madctl[] = { ST7789_MADCTL_ML | ST7789_MADCTL_RGB };
+    const uint8_t madctl_r[] = { ST7789_MADCTL_MX | ST7789_MADCTL_MV | ST7789_MADCTL_BGR };
+    const uint8_t madctl[] = { ST7789_MADCTL_BGR };
+    if (self->width > self->height) {
+        write_cmd(self, ST7789_MADCTL, madctl_r, 1); // rotated 90º
+    } else {
+        write_cmd(self, ST7789_MADCTL, madctl, 1);
+    }
+
+  // JLX240 display datasheet
+    const uint8_t b6[] = {0x0A, 0x82};
+    write_cmd(self, 0xB6, b6, 2);
 
     const uint8_t color_mode[] = { COLOR_MODE_65K | COLOR_MODE_16BIT};
     write_cmd(self, ST7789_COLMOD, color_mode, 1);
     mp_hal_delay_ms(10);
-    const uint8_t madctl[] = { ST7789_MADCTL_ML | ST7789_MADCTL_RGB };
-    write_cmd(self, ST7789_MADCTL, madctl, 1);
+
+/* Added
+ *
+*/
+
+    const uint8_t proc[] = {0x0C, 0x0C, 0x00, 0x33, 0x33};
+    write_cmd(self, ST7789_PORCTRL, proc, 5);
+    const uint8_t gctl[] = {0x35};
+    write_cmd(self, ST7789_GCTRL, gctl, 1);
+    const uint8_t vcoms[] = {0x28};
+    write_cmd(self, ST7789_VCOMS, vcoms, 1);
+    const uint8_t lcmctrl[] = {0x0C};
+    write_cmd(self, ST7789_LCMCTRL, lcmctrl, 1);
+    const uint8_t vdvvrhen[] = {0x01, 0xFF};
+    write_cmd(self, ST7789_VDVVRHEN, vdvvrhen, 2);
+    const uint8_t vrhs[] = {0x10};
+    write_cmd(self, ST7789_VRHS, vrhs, 1);
+    const uint8_t vdvset[] = {0x20};
+    write_cmd(self, ST7789_VDVSET, vdvset, 1);
+    const uint8_t frctr2[] = {0x10};
+    write_cmd(self, ST7789_FRCTR2, frctr2, 1);
+    const uint8_t pwrctrl1[] = {0xA4, 0xA1};
+    write_cmd(self, ST7789_PWCTRL1, pwrctrl1, 2);
 
     write_cmd(self, ST7789_INVON, NULL, 0);
-    mp_hal_delay_ms(10);
-    write_cmd(self, ST7789_NORON, NULL, 0);
-    mp_hal_delay_ms(10);
+
+    const uint8_t caset[] = {0x00, 0x00, 0x00, 0xE5};
+    write_cmd(self, ST7789_CASET, caset, 4);    // Column address set
+    const uint8_t raset[] = {0x00, 0x00, 0x01, 0x3F};
+    write_cmd(self, ST7789_RASET, raset, 4);    // Column address set
+    mp_hal_delay_ms(120);
+
+
+
+/* Added end
+ *
+ * */
+
+//    write_cmd(self, ST7789_NORON, NULL, 0);
+//    mp_hal_delay_ms(10);
 
     const mp_obj_t args[] = {
         self_in,
@@ -404,7 +453,7 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in) {
         mp_obj_new_int(0),
         mp_obj_new_int(self->width),
         mp_obj_new_int(self->height),
-        mp_obj_new_int(BLACK)
+        mp_obj_new_int(GREEN)
     };
     st7789_ST7789_fill_rect(6, args);
     write_cmd(self, ST7789_DISPON, NULL, 0);
@@ -553,6 +602,9 @@ mp_obj_t st7789_ST7789_make_new(const mp_obj_type_t *type,
     } else if (self->width == 135 && self->height == 240) {
         self->xstart = ST7789_135x240_XSTART;
         self->ystart = ST7789_135x240_YSTART;
+    } else if (self->width == 240 && self->height == 135) {
+        self->xstart = ST7789_135x240_YSTART;
+        self->ystart = ST7789_135x240_XSTART;
     } else {
         mp_raise_ValueError(MP_ERROR_TEXT("Unsupported display. Only 240x240 and 135x240 are supported without xstart and ystart provided"));
     }
@@ -663,4 +715,5 @@ const mp_obj_module_t mp_module_st7789 = {
     .globals = (mp_obj_dict_t*)&mp_module_st7789_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_st7789, mp_module_st7789, MODULE_ST7789_ENABLED);
+//MP_REGISTER_MODULE(MP_QSTR_st7789, mp_module_st7789, MODULE_ST7789_ENABLED);
+MP_REGISTER_MODULE(MP_QSTR_st7789, mp_module_st7789, 1);
